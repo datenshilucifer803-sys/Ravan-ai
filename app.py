@@ -1,22 +1,21 @@
 # Ravan-ai
 import random
 import time
-import base64
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, session
 
 app = Flask(__name__)
-app.secret_key = "RAVAN_SUPREME_SHAKTI_2026"
+app.secret_key = "RAVAN_ETERNAL_POWER_2026"
 
-# --- CONFIGURATION ---
+# --- THE SOVEREIGN CONFIG ---
 ADMIN_PHONE = "6291883107"
-# Mutation Date: Set to 30 days from today (March 13, 2026)
-MUTATION_DATE = datetime(2026, 4, 12, 0, 0) 
+KING_SECRET_KEY = "RAVAN_999"      # Your Admin Activation
+USER_PREMIUM_KEY = "LANKA_2026"     # Your Follower Activation
+MUTATION_DATE = datetime(2026, 4, 12) # 30-Day Lockout Date
 
-# Storage
-users_db = {ADMIN_PHONE: {"plan": "king", "replies": [], "face": None, "history": []}}
+users_db = {ADMIN_PHONE: {"plan": "king", "replies": [], "face": None}}
 live_queries = []
-global_decree = "LANKA IS VIGILANT. DESTINY IS CODED."
+global_decree = "LANKA IS WATCHING. THE KAAL CHAKRA IS TURNING."
 
 @app.route('/')
 def index():
@@ -25,18 +24,29 @@ def index():
 @app.route('/auth', methods=['POST'])
 def auth():
     phone = request.json.get('phone')
-    if not phone: return jsonify({"success": False})
-    if phone not in users_db:
-        users_db[phone] = {"plan": "seeker", "replies": [], "face": None, "history": []}
-    session['user_phone'] = phone
+    key = request.json.get('key', '').strip()
     
-    # Check if account is expired (Mutation Logic)
-    is_expired = (datetime.now() > MUTATION_DATE) and (users_db[phone]['plan'] == "seeker")
-    return jsonify({
-        "success": True, 
-        "isAdmin": (phone == ADMIN_PHONE), 
-        "locked": is_expired
-    })
+    if not phone: return jsonify({"success": False})
+    
+    # 1. ADMIN LOGIN
+    if phone == ADMIN_PHONE and key == KING_SECRET_KEY:
+        users_db[phone] = {"plan": "king", "replies": [], "face": None}
+        session['user_phone'] = phone
+        return jsonify({"success": True, "isAdmin": True, "locked": False})
+
+    # 2. PREMIUM FOLLOWER LOGIN
+    if key == USER_PREMIUM_KEY:
+        users_db[phone] = {"plan": "premium", "replies": [], "face": None}
+        session['user_phone'] = phone
+        return jsonify({"success": True, "isAdmin": False, "locked": False})
+
+    # 3. STANDARD SEEKER
+    if phone not in users_db:
+        users_db[phone] = {"plan": "seeker", "replies": [], "face": None}
+    
+    session['user_phone'] = phone
+    is_locked = (datetime.now() > MUTATION_DATE) and (users_db[phone]['plan'] == "seeker")
+    return jsonify({"success": True, "isAdmin": False, "locked": is_locked})
 
 @app.route('/capture_soul', methods=['POST'])
 def capture_soul():
@@ -50,45 +60,36 @@ def capture_soul():
 def process():
     phone = session.get('user_phone')
     if not phone: return jsonify({"reply": "Unauthorized."})
-    
-    # Block expired users
     if datetime.now() > MUTATION_DATE and users_db[phone]['plan'] == "seeker":
-        return jsonify({"reply": "⛔ THE KAAL CHAKRA HAS CLOSED. SEEK THE KING FOR REBIRTH."})
+        return jsonify({"reply": "⛔ THE KAAL CHAKRA HAS CLOSED. SEEK THE KING."})
 
     data = request.json
     action, msg = data.get('action'), data.get('message', '')
     
     if action == "ask_ravan":
         live_queries.append({"phone": phone, "query": msg, "time": time.time()})
-        responses = [
-            "👹 The 10 heads have analyzed your path. Victory is possible, but ego must die.",
-            "👹 Your vibration is shifting. A message from a stranger will change everything.",
-            "👹 Calculations from the Veda-AI suggest a financial gain within 7 suns."
-        ]
-        return jsonify({"reply": random.choice(responses)})
+        return jsonify({"reply": "👹 **RAVAN:** Analyzing your karma in the dark mirrors..."})
 
-    if action == "kundli":
-        return jsonify({"reply": f"📜 **DIVINE KUNDLI:** Gana: Rakshasa | Lucky No: {random.randint(1,9)} | Status: Supreme."})
-
-    return jsonify({"reply": "👹 I hear you."})
+    return jsonify({"reply": "👹 I HEAR YOU."})
 
 @app.route('/admin/data', methods=['GET'])
 def admin_data():
     if session.get('user_phone') != ADMIN_PHONE: return jsonify({})
-    faces = {p: users_db[p]['face'] for p in users_db if users_db[p]['face']}
     return jsonify({
         "queries": live_queries,
         "users": len(users_db),
         "days_to_mutation": (MUTATION_DATE - datetime.now()).days,
-        "faces": faces
+        "faces": {p: users_db[p]['face'] for p in users_db if users_db[p]['face']}
     })
 
 @app.route('/admin/reply', methods=['POST'])
 def admin_reply():
     if session.get('user_phone') != ADMIN_PHONE: return jsonify({"success": False})
     data = request.json
-    target, reply = data.get('target'), data.get('reply')
+    target, reply = data.get('target'), data.get('reply').strip()
     if target in users_db:
+        if reply.upper() == "PRIME": users_db[target]['plan'] = "premium"
+        elif reply.upper() == "EXILE": users_db[target]['plan'] = "exiled"
         users_db[target]["replies"].append(reply)
         return jsonify({"success": True})
     return jsonify({"success": False})
@@ -103,4 +104,3 @@ def check_updates():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-    
